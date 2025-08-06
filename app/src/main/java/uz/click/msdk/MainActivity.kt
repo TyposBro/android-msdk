@@ -4,7 +4,8 @@ import android.content.Context
 import android.content.res.Configuration
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
-import kotlinx.android.synthetic.main.main_activity.*
+// 1. Import the generated View Binding class for your layout
+import uz.click.msdk.databinding.MainActivityBinding
 import uz.click.mobilesdk.core.ClickMerchant
 import uz.click.mobilesdk.core.ClickMerchantConfig
 import uz.click.mobilesdk.core.ClickMerchantManager
@@ -23,24 +24,28 @@ class MainActivity : AppCompatActivity() {
     //fake in-memory user
     private val currentUser = UserDetail(0, "", null, false)
 
+    // 2. Declare a variable for the binding object
+    private lateinit var binding: MainActivityBinding
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.main_activity)
+        // 3. Inflate the layout using the binding class and set the content view to its root
+        binding = MainActivityBinding.inflate(layoutInflater)
+        setContentView(binding.root)
 
-        price.text = productPrice.toString()
-        good_name.text = productName
-        good_description.text = productDescription
+        // 4. Access all views through the 'binding' object
+        binding.price.text = productPrice.toString()
+        binding.goodName.text = productName
+        binding.goodDescription.text = productDescription
 
         checkDarkThemeMode(this)
 
-        btnBuy.setOnClickListener {
+        binding.btnBuy.setOnClickListener {
             val config = ClickMerchantConfig.Builder()
                 .serviceId(BuildConfig.SERVICE_ID)
                 .merchantId(BuildConfig.MERCHANT_ID)
                 .amount(productPrice)
-                //transaction param is optional (if you not have your billing system)
                 .transactionParam(transactionParam)
-//                .returnUrl("https://www.youtube.com/")
                 .locale("RU")
                 .option(PaymentOptionEnum.CLICK_EVOLUTION)
                 .theme(themeMode)
@@ -78,21 +83,14 @@ class MainActivity : AppCompatActivity() {
                 }
             )
         }
-
     }
 
     private fun checkDarkThemeMode(context: Context) {
-        val mode = context.resources.configuration.uiMode.and(Configuration.UI_MODE_NIGHT_MASK)
-        when (mode) {
-            Configuration.UI_MODE_NIGHT_NO -> {
-                themeMode = ThemeOptions.LIGHT
-            }
-            Configuration.UI_MODE_NIGHT_YES -> {
-                themeMode = ThemeOptions.NIGHT
-            }
-            Configuration.UI_MODE_NIGHT_UNDEFINED -> {
-                themeMode = ThemeOptions.LIGHT
-            }
+        val mode = context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK
+        themeMode = when (mode) {
+            Configuration.UI_MODE_NIGHT_NO -> ThemeOptions.LIGHT
+            Configuration.UI_MODE_NIGHT_YES -> ThemeOptions.NIGHT
+            else -> ThemeOptions.LIGHT
         }
     }
 }

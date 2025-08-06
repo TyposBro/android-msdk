@@ -6,17 +6,14 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Bundle
-import androidx.core.app.ActivityCompat
-import androidx.core.content.ContextCompat
-import androidx.appcompat.app.AppCompatDialogFragment
-import androidx.appcompat.view.ContextThemeWrapper
-import android.util.Log
-import android.util.TypedValue
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.view.inputmethod.EditorInfo
-import kotlinx.android.synthetic.main.fragment_payment.*
+import androidx.appcompat.app.AppCompatDialogFragment
+import androidx.appcompat.view.ContextThemeWrapper
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import uz.click.mobilesdk.BuildConfig
 import uz.click.mobilesdk.R
 import uz.click.mobilesdk.core.ClickMerchantConfig
@@ -28,23 +25,20 @@ import uz.click.mobilesdk.core.data.CheckoutResponse
 import uz.click.mobilesdk.core.data.InitialResponse
 import uz.click.mobilesdk.core.data.InvoiceResponse
 import uz.click.mobilesdk.core.errors.ArgumentEmptyException
+// UPDATED: Import the generated View Binding class
+import uz.click.mobilesdk.databinding.FragmentPaymentBinding
 import uz.click.mobilesdk.impl.paymentoptions.PaymentOption
 import uz.click.mobilesdk.impl.paymentoptions.PaymentOptionEnum
 import uz.click.mobilesdk.impl.paymentoptions.ThemeOptions
-import uz.click.mobilesdk.utils.CardExpiryDateFormatWatcher
-import uz.click.mobilesdk.utils.CardNumberFormatWatcher
-import uz.click.mobilesdk.utils.ErrorUtils
-import uz.click.mobilesdk.utils.LanguageUtils
-import uz.click.mobilesdk.utils.PhoneNumberTextWatcher
-import uz.click.mobilesdk.utils.formatDecimals
-import uz.click.mobilesdk.utils.hide
-import uz.click.mobilesdk.utils.hideKeyboard
-import uz.click.mobilesdk.utils.invisible
-import uz.click.mobilesdk.utils.show
+import uz.click.mobilesdk.utils.*
 import java.util.*
 
-
 class PaymentFragment : AppCompatDialogFragment() {
+
+    // UPDATED: Start of View Binding implementation
+    private var _binding: FragmentPaymentBinding? = null
+    private val binding get() = _binding!!
+    // UPDATED: End of View Binding implementation
 
     private lateinit var config: ClickMerchantConfig
     private var listener: ClickMerchantListener? = null
@@ -66,11 +60,9 @@ class PaymentFragment : AppCompatDialogFragment() {
         when (config.themeMode) {
             ThemeOptions.LIGHT -> {
                 setStyle(STYLE_NO_FRAME, R.style.cl_FullscreenDialogTheme)
-
             }
             ThemeOptions.NIGHT -> {
                 setStyle(STYLE_NO_FRAME, R.style.cl_FullscreenDialogThemeDark)
-
             }
         }
     }
@@ -81,270 +73,176 @@ class PaymentFragment : AppCompatDialogFragment() {
         inflater: LayoutInflater,
         container: ViewGroup?,
         savedInstanceState: Bundle?
-    ): View? {
-        return when (config.themeMode) {
-            ThemeOptions.LIGHT -> {
-                val contextWrapper = ContextThemeWrapper(activity, R.style.Theme_App_Light)
-
-                inflater.cloneInContext(contextWrapper)
-                    .inflate(R.layout.fragment_payment, container, false)
-            }
-            ThemeOptions.NIGHT -> {
-                val contextWrapper = ContextThemeWrapper(activity, R.style.Theme_App_Dark)
-
-                inflater.cloneInContext(contextWrapper)
-                    .inflate(R.layout.fragment_payment, container, false)
-            }
+    ): View {
+        // UPDATED: Inflate the layout using the binding class and return its root view
+        val contextWrapper = when (config.themeMode) {
+            ThemeOptions.LIGHT -> ContextThemeWrapper(activity, R.style.Theme_App_Light)
+            ThemeOptions.NIGHT -> ContextThemeWrapper(activity, R.style.Theme_App_Dark)
         }
+        _binding = FragmentPaymentBinding.inflate(inflater.cloneInContext(contextWrapper), container, false)
+        return binding.root
+    }
 
+    // UPDATED: Add onDestroyView to clean up the binding reference and avoid memory leaks
+    override fun onDestroyView() {
+        super.onDestroyView()
+        _binding = null
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         listener = (parentFragment as MainDialogFragment?)?.getListener()
+
+        // UPDATED: All view access is now done through the `binding` object
         when (config.themeMode) {
             ThemeOptions.LIGHT -> {
-                btnNext.setBackgroundResource(R.drawable.next_button_rounded)
-                viewMobileNumberUnderline.setBackgroundResource(R.drawable.underline_background)
-                viewCardNumberUnderline.setBackgroundResource(R.drawable.underline_background)
-                viewCardDateUnderline.setBackgroundResource(R.drawable.underline_background)
-
+                binding.btnNext.setBackgroundResource(R.drawable.next_button_rounded)
+                binding.viewMobileNumberUnderline.setBackgroundResource(R.drawable.underline_background)
+                binding.viewCardNumberUnderline.setBackgroundResource(R.drawable.underline_background)
+                binding.viewCardDateUnderline.setBackgroundResource(R.drawable.underline_background)
             }
             ThemeOptions.NIGHT -> {
-                btnNext.setBackgroundResource(R.drawable.next_button_rounded_dark)
-                viewMobileNumberUnderline.setBackgroundResource(R.drawable.underline_background_dark)
-                viewCardNumberUnderline.setBackgroundResource(R.drawable.underline_background_dark)
-                viewCardDateUnderline.setBackgroundResource(R.drawable.underline_background_dark)
-
+                binding.btnNext.setBackgroundResource(R.drawable.next_button_rounded_dark)
+                binding.viewMobileNumberUnderline.setBackgroundResource(R.drawable.underline_background_dark)
+                binding.viewCardNumberUnderline.setBackgroundResource(R.drawable.underline_background_dark)
+                binding.viewCardDateUnderline.setBackgroundResource(R.drawable.underline_background_dark)
             }
         }
 
         if (arguments != null) {
-            config =
-                arguments!!.getSerializable(MainDialogFragment.CLICK_MERCHANT_CONFIG) as ClickMerchantConfig
-            tvTitle.text = config.productName
-            tvSubtitle.text = config.productDescription
-            tvSum.text = config.amount.formatDecimals()
+            config = arguments!!.getSerializable(MainDialogFragment.CLICK_MERCHANT_CONFIG) as ClickMerchantConfig
+            binding.tvTitle.text = config.productName
+            binding.tvSubtitle.text = config.productDescription
+            binding.tvSum.text = config.amount.formatDecimals()
             requestId = config.requestId
 
-            mode = if (config.paymentOption != PaymentOptionEnum.CLICK_EVOLUTION)
+            mode = if (config.paymentOption != PaymentOptionEnum.CLICK_EVOLUTION) {
                 config.paymentOption
-            else {
-                var isClickEvolutionEnabled = false
-                if (!config.transactionParam.isNullOrEmpty()) {
-                    isClickEvolutionEnabled = appInstalledOrNot(APP_NAME)
-                }
-
-                if (isClickEvolutionEnabled) config.paymentOption
-                else PaymentOptionEnum.USSD
+            } else {
+                val isClickEvolutionEnabled = !config.transactionParam.isNullOrEmpty() && appInstalledOrNot(APP_NAME)
+                if (isClickEvolutionEnabled) config.paymentOption else PaymentOptionEnum.USSD
             }
-            locale = Locale(config.locale.toLowerCase())
+            locale = Locale(config.locale.lowercase(Locale.getDefault()))
 
-            btnChange.text =
-                LanguageUtils.getLocaleStringResource(locale, R.string.change, context!!)
-            tvToPay.text =
-                LanguageUtils.getLocaleStringResource(locale, R.string.payment, context!!)
-            tvCommission.text =
-                LanguageUtils.getLocaleStringResource(locale, R.string.commission, context!!)
-            tvAbbrCommision.text =
-                LanguageUtils.getLocaleStringResource(locale, R.string.abbr, context!!)
-            tvNext.text = LanguageUtils.getLocaleStringResource(locale, R.string.next, context!!)
-            tvAbbr.text = LanguageUtils.getLocaleStringResource(locale, R.string.abbr, context!!)
-            tvRetry.text = LanguageUtils.getLocaleStringResource(locale, R.string.retry, context!!)
-            tvErrorText.text =
-                LanguageUtils.getLocaleStringResource(
-                    locale,
-                    R.string.connection_problem,
-                    context!!
-                )
+            binding.btnChange.text = LanguageUtils.getLocaleStringResource(locale, R.string.change, requireContext())
+            binding.tvToPay.text = LanguageUtils.getLocaleStringResource(locale, R.string.payment, requireContext())
+            binding.tvCommission.text = LanguageUtils.getLocaleStringResource(locale, R.string.commission, requireContext())
+            binding.tvAbbrCommision.text = LanguageUtils.getLocaleStringResource(locale, R.string.abbr, requireContext())
+            binding.tvNext.text = LanguageUtils.getLocaleStringResource(locale, R.string.next, requireContext())
+            binding.tvAbbr.text = LanguageUtils.getLocaleStringResource(locale, R.string.abbr, requireContext())
+            binding.tvRetry.text = LanguageUtils.getLocaleStringResource(locale, R.string.retry, requireContext())
+            binding.tvErrorText.text = LanguageUtils.getLocaleStringResource(locale, R.string.connection_problem, requireContext())
 
-            when (mode) {
-                PaymentOptionEnum.BANK_CARD -> {
-                    llBankCard.show()
-                    llUssd.hide()
-                    ivPaymentType.setImageDrawable(
-                        ContextCompat.getDrawable(
-                            context!!,
-                            R.drawable.ic_cards
-                        )
-                    )
-                    tvPaymentTypeTitle.text =
-                        LanguageUtils.getLocaleStringResource(locale, R.string.bank_card, context!!)
-                    tvPaymentTypeSubtitle.text =
-                        LanguageUtils.getLocaleStringResource(
-                            locale,
-                            R.string.card_props,
-                            context!!
-                        )
+            updateUiForPaymentMode()
+        } else {
+            throw ArgumentEmptyException()
+        }
 
-                    if (shouldInitRequestId) {
-                        init()
-                        shouldInitRequestId = false
-                    }
-                }
-                PaymentOptionEnum.USSD -> {
-                    llBankCard.hide()
-                    llUssd.show()
-                    ivPaymentType.setImageDrawable(
-                        ContextCompat.getDrawable(
-                            context!!,
-                            R.drawable.ic_880
-                        )
-                    )
-                    tvPaymentTypeTitle.text =
-                        LanguageUtils.getLocaleStringResource(locale, R.string.invoicing, context!!)
-                    tvPaymentTypeSubtitle.text = LanguageUtils.getLocaleStringResource(
-                        locale,
-                        R.string.sms_confirmation,
-                        context!!
-                    )
-
-                    if (shouldInitRequestId) {
-                        init()
-                        shouldInitRequestId = false
-                    }
-                }
-                PaymentOptionEnum.CLICK_EVOLUTION -> {
-                    llBankCard.hide()
-                    llUssd.hide()
-
-                    ivPaymentType.setImageDrawable(
-                        ContextCompat.getDrawable(
-                            context!!,
-                            R.drawable.ic_aevo
-                        )
-                    )
-                    tvPaymentTypeTitle.text =
-                        LanguageUtils.getLocaleStringResource(
-                            locale,
-                            R.string.click_evo_app,
-                            context!!
-                        )
-                    tvPaymentTypeSubtitle.text = LanguageUtils.getLocaleStringResource(
-                        locale,
-                        R.string.click_evo_app_description,
-                        context!!
-                    )
-
-                    if (shouldInitRequestId) {
-                        init()
-                        shouldInitRequestId = false
-                    }
-                }
-            }
-
-        } else throw ArgumentEmptyException()
-
-        tvRetry.setOnClickListener {
+        binding.tvRetry.setOnClickListener {
             init()
         }
 
-        etCardNumber.addTextChangedListener(object : CardNumberFormatWatcher(etCardNumber) {
-            override fun afterTextWithoutPattern(cardNumber: String) {
-
-            }
+        binding.etCardNumber.addTextChangedListener(object : CardNumberFormatWatcher(binding.etCardNumber) {
+            override fun afterTextWithoutPattern(cardNumber: String) {}
         })
 
-        etCardDate.addTextChangedListener(object : CardExpiryDateFormatWatcher(etCardDate) {
-            override fun afterTextWithoutPattern(expiredDate: String) {
-
-            }
-
+        binding.etCardDate.addTextChangedListener(object : CardExpiryDateFormatWatcher(binding.etCardDate) {
+            override fun afterTextWithoutPattern(expiredDate: String) {}
         })
 
-        etMobileNumber.addTextChangedListener(PhoneNumberTextWatcher(etMobileNumber))
+        binding.etMobileNumber.addTextChangedListener(PhoneNumberTextWatcher(binding.etMobileNumber))
 
-        etMobileNumber.onFocusChangeListener = View.OnFocusChangeListener { _, hasFocus ->
-            viewMobileNumberUnderline.isEnabled = !hasFocus
+        binding.etMobileNumber.onFocusChangeListener = View.OnFocusChangeListener { _, hasFocus ->
+            binding.viewMobileNumberUnderline.isEnabled = !hasFocus
         }
 
-        etCardNumber.onFocusChangeListener = View.OnFocusChangeListener { _, hasFocus ->
-            viewCardNumberUnderline.isEnabled = !hasFocus
-        }
-        etCardDate.onFocusChangeListener = View.OnFocusChangeListener { _, hasFocus ->
-            viewCardDateUnderline.isEnabled = !hasFocus
+        binding.etCardNumber.onFocusChangeListener = View.OnFocusChangeListener { _, hasFocus ->
+            binding.viewCardNumberUnderline.isEnabled = !hasFocus
         }
 
-        llChange.setOnClickListener {
+        binding.etCardDate.onFocusChangeListener = View.OnFocusChangeListener { _, hasFocus ->
+            binding.viewCardDateUnderline.isEnabled = !hasFocus
+        }
+
+        binding.llChange.setOnClickListener {
             it.hideKeyboard()
-            tvError.hide()
-            parentFragment?.let {
-                val parent = parentFragment as MainDialogFragment
-                parent.onChange()
-            }
+            binding.tvError.hide()
+            (parentFragment as? MainDialogFragment)?.onChange()
         }
 
-        etMobileNumber.setOnEditorActionListener { _, actionId, _ ->
+        binding.etMobileNumber.setOnEditorActionListener { _, actionId, _ ->
             if (actionId == EditorInfo.IME_ACTION_DONE) {
                 buyClick()
-                etMobileNumber.hideKeyboard()
+                binding.etMobileNumber.hideKeyboard()
             }
             true
         }
 
-        etCardDate.setOnEditorActionListener { _, actionId, _ ->
+        binding.etCardDate.setOnEditorActionListener { _, actionId, _ ->
             if (actionId == EditorInfo.IME_ACTION_DONE) {
                 buyClick()
-                etCardDate.hideKeyboard()
+                binding.etCardDate.hideKeyboard()
             }
             true
         }
 
-        btnNext.setOnClickListener {
+        binding.btnNext.setOnClickListener {
             buyClick()
-            btnNext.hideKeyboard()
+            binding.btnNext.hideKeyboard()
         }
 
-        ivScanner.setOnClickListener {
-            if (ActivityCompat.checkSelfPermission(
-                    context!!,
-                    Manifest.permission.CAMERA
-                ) != PackageManager.PERMISSION_GRANTED
-            ) {
-
-                requestPermissions(
-                    arrayOf(
-                        Manifest.permission.CAMERA
-                    ),
-                    ScanFragment.REQUEST_CAMERA
-                )
+        binding.ivScanner.setOnClickListener {
+            if (ActivityCompat.checkSelfPermission(requireContext(), Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+                requestPermissions(arrayOf(Manifest.permission.CAMERA), ScanFragment.REQUEST_CAMERA)
             } else {
-                parentFragment?.let {
-                    val parent = parentFragment as MainDialogFragment
-                    parent.scanCard()
-                }
+                (parentFragment as? MainDialogFragment)?.scanCard()
             }
+        }
+    }
+
+    private fun updateUiForPaymentMode() {
+        when (mode) {
+            PaymentOptionEnum.BANK_CARD -> {
+                binding.llBankCard.show()
+                binding.llUssd.hide()
+                binding.ivPaymentType.setImageDrawable(ContextCompat.getDrawable(requireContext(), R.drawable.ic_cards))
+                binding.tvPaymentTypeTitle.text = LanguageUtils.getLocaleStringResource(locale, R.string.bank_card, requireContext())
+                binding.tvPaymentTypeSubtitle.text = LanguageUtils.getLocaleStringResource(locale, R.string.card_props, requireContext())
+            }
+            PaymentOptionEnum.USSD -> {
+                binding.llBankCard.hide()
+                binding.llUssd.show()
+                binding.ivPaymentType.setImageDrawable(ContextCompat.getDrawable(requireContext(), R.drawable.ic_880))
+                binding.tvPaymentTypeTitle.text = LanguageUtils.getLocaleStringResource(locale, R.string.invoicing, requireContext())
+                binding.tvPaymentTypeSubtitle.text = LanguageUtils.getLocaleStringResource(locale, R.string.sms_confirmation, requireContext())
+            }
+            PaymentOptionEnum.CLICK_EVOLUTION -> {
+                binding.llBankCard.hide()
+                binding.llUssd.hide()
+                binding.ivPaymentType.setImageDrawable(ContextCompat.getDrawable(requireContext(), R.drawable.ic_aevo))
+                binding.tvPaymentTypeTitle.text = LanguageUtils.getLocaleStringResource(locale, R.string.click_evo_app, requireContext())
+                binding.tvPaymentTypeSubtitle.text = LanguageUtils.getLocaleStringResource(locale, R.string.click_evo_app_description, requireContext())
+            }
+        }
+        if (shouldInitRequestId) {
+            init()
+            shouldInitRequestId = false
         }
     }
 
     private fun appInstalledOrNot(uri: String): Boolean {
-        val pm: PackageManager = requireContext().packageManager
-        try {
-            pm.getPackageInfo(uri, PackageManager.GET_ACTIVITIES)
-            return true
+        return try {
+            requireContext().packageManager.getPackageInfo(uri, PackageManager.GET_ACTIVITIES)
+            true
         } catch (e: PackageManager.NameNotFoundException) {
+            false
         }
-        return false
     }
 
-    override fun onRequestPermissionsResult(
-        requestCode: Int,
-        permissions: Array<out String>,
-        grantResults: IntArray
-    ) {
-        when (requestCode) {
-            ScanFragment.REQUEST_CAMERA -> {
-                if ((grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED)) {
-                    parentFragment?.let {
-                        val parent = parentFragment as MainDialogFragment
-                        parent.scanCard()
-                    }
-                } else {
-                }
-                return
-            }
-            else -> {
-                // Ignore all other requests.
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+        if (requestCode == ScanFragment.REQUEST_CAMERA) {
+            if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                (parentFragment as? MainDialogFragment)?.scanCard()
             }
         }
     }
@@ -353,19 +251,15 @@ class PaymentFragment : AppCompatDialogFragment() {
         if (requestId.isEmpty()) {
             showLoading()
             clickMerchantManager.sendInitialRequest(
-                config.serviceId,
-                config.merchantId,
-                config.amount,
-                config.transactionParam,
-                config.communalParam,
-                config.merchantUserId,
-                config.locale, object : ResponseListener<InitialResponse> {
+                config.serviceId, config.merchantId, config.amount,
+                config.transactionParam, config.communalParam, config.merchantUserId, config.locale,
+                object : ResponseListener<InitialResponse> {
                     override fun onFailure(e: Exception) {
                         e.printStackTrace()
                         showError()
                         if (ErrorUtils.isApiError(e)) {
                             activity?.runOnUiThread {
-                                tvErrorText.text = ErrorUtils.getErrorMessage(e, locale, context!!)
+                                binding.tvErrorText.text = ErrorUtils.getErrorMessage(e, locale, requireContext())
                             }
                         }
                     }
@@ -373,103 +267,70 @@ class PaymentFragment : AppCompatDialogFragment() {
                     override fun onSuccess(response: InitialResponse) {
                         requestId = response.requestId
                         listener?.onReceiveRequestId(requestId)
-                        if (requestId.isNotEmpty()) init()
-                        else showResult()
+                        if (requestId.isNotEmpty()) init() else showResult()
                     }
                 }
             )
         } else {
             showLoading()
-            clickMerchantManager.checkPaymentByRequestId(
-                requestId,
-                object : ResponseListener<CheckoutResponse> {
-                    override fun onFailure(e: Exception) {
-                        e.printStackTrace()
-                        showError()
-                    }
+            clickMerchantManager.checkPaymentByRequestId(requestId, object : ResponseListener<CheckoutResponse> {
+                override fun onFailure(e: Exception) {
+                    e.printStackTrace()
+                    showError()
+                }
 
-                    override fun onSuccess(response: CheckoutResponse) {
-
-                        activity?.runOnUiThread {
-                            tvSum.text = response.amount.formatDecimals()
-                            if (response.commissionPercent ?: 0.0 > 0.0) {
-                                val percent: Double = response.commissionPercent!!
-                                val commissionAmount: Double =
-                                    response.amount - response.amount / (1.0 + percent / 100.0)
-                                tvCommissionPercent.text = commissionAmount.formatDecimals()
-                                llCommission.show()
-                            } else {
-                                tvCommissionPercent.text = ""
-                                llCommission.hide()
-                            }
+                override fun onSuccess(response: CheckoutResponse) {
+                    activity?.runOnUiThread {
+                        binding.tvSum.text = response.amount.formatDecimals()
+                        if ((response.commissionPercent ?: 0.0) > 0.0) {
+                            val percent: Double = response.commissionPercent!!
+                            val commissionAmount: Double = response.amount - response.amount / (1.0 + percent / 100.0)
+                            binding.tvCommissionPercent.text = commissionAmount.formatDecimals()
+                            binding.llCommission.show()
+                        } else {
+                            binding.tvCommissionPercent.text = ""
+                            binding.llCommission.hide()
                         }
+                    }
 
-
-                        if (response.payment.paymentStatusDescription != null) {
-                            when (config.paymentOption) {
-                                PaymentOptionEnum.BANK_CARD -> {
-                                    when {
-                                        response.payment.paymentStatus == 1 || response.payment.paymentStatus == 0 -> {
-                                            parentFragment?.let {
-                                                val parent = parentFragment as MainDialogFragment
-                                                parent.openPaymentConfirmation(null, requestId)
-                                            }
-                                        }
-                                        response.payment.paymentStatus == 2 || response.payment.paymentStatus < 0 -> {
-                                            parentFragment?.let {
-                                                val parent = parentFragment as MainDialogFragment
-                                                parent.openPaymentResultPage(response.payment)
-                                            }
-                                        }
-
-                                    }
-                                }
-                                PaymentOptionEnum.USSD -> {
-                                    when {
-                                        response.payment.paymentStatus == 1 || response.payment.paymentStatus == 0 -> {
-                                            parentFragment?.let {
-                                                val parent = parentFragment as MainDialogFragment
-                                                parent.openInvoiceConfirmationPage(requestId)
-                                            }
-                                        }
-                                        response.payment.paymentStatus == 2 || response.payment.paymentStatus < 0 -> {
-                                            parentFragment?.let {
-                                                val parent = parentFragment as MainDialogFragment
-                                                parent.openPaymentResultPage(response.payment)
-                                            }
-                                        }
-                                    }
+                    if (response.payment.paymentStatusDescription != null) {
+                        val parent = parentFragment as? MainDialogFragment
+                        when (config.paymentOption) {
+                            PaymentOptionEnum.BANK_CARD -> {
+                                when {
+                                    response.payment.paymentStatus in 0..1 -> parent?.openPaymentConfirmation(null, requestId)
+                                    response.payment.paymentStatus == 2 || response.payment.paymentStatus < 0 -> parent?.openPaymentResultPage(response.payment)
                                 }
                             }
-                        } else showResult()
+                            PaymentOptionEnum.USSD -> {
+                                when {
+                                    response.payment.paymentStatus in 0..1 -> parent?.openInvoiceConfirmationPage(requestId)
+                                    response.payment.paymentStatus == 2 || response.payment.paymentStatus < 0 -> parent?.openPaymentResultPage(response.payment)
+                                }
+                            }
+                            else -> {} // CLICK_EVOLUTION does not have this flow
+                        }
+                    } else {
+                        showResult()
                     }
-                })
+                }
+            })
         }
     }
 
     private fun buyClick() {
-        tvError.hide()
+        binding.tvError.hide()
         when (mode) {
             PaymentOptionEnum.BANK_CARD -> {
                 when {
-                    etCardNumber.text.toString().isEmpty() -> etCardNumber.error =
-                        LanguageUtils.getLocaleStringResource(
-                            locale,
-                            R.string.enter_card_number,
-                            context!!
-                        )
-                    etCardDate.text.toString().isEmpty() -> etCardDate.error =
-                        LanguageUtils.getLocaleStringResource(
-                            locale,
-                            R.string.enter_expire_date,
-                            context!!
-                        )
+                    binding.etCardNumber.text.toString().isEmpty() -> binding.etCardNumber.error = LanguageUtils.getLocaleStringResource(locale, R.string.enter_card_number, requireContext())
+                    binding.etCardDate.text.toString().isEmpty() -> binding.etCardDate.error = LanguageUtils.getLocaleStringResource(locale, R.string.enter_expire_date, requireContext())
                     else -> {
                         showLoading()
                         clickMerchantManager.paymentByCard(
                             requestId,
-                            etCardNumber.text.toString().replace(" ", ""),
-                            etCardDate.text.toString().replace("/", ""),
+                            binding.etCardNumber.text.toString().replace(" ", ""),
+                            binding.etCardDate.text.toString().replace("/", ""),
                             object : ResponseListener<CardPaymentResponse> {
                                 override fun onFailure(e: Exception) {
                                     showResult()
@@ -478,19 +339,10 @@ class PaymentFragment : AppCompatDialogFragment() {
 
                                 override fun onSuccess(response: CardPaymentResponse) {
                                     showResult()
-                                    parentFragment?.let {
-                                        val parent = it as MainDialogFragment
-
-                                        val prefs =
-                                            context?.getSharedPreferences(
-                                                BuildConfig.BASE_XML,
-                                                Context.MODE_PRIVATE
-                                            )
-                                        prefs?.edit()?.putString(requestId, response.phoneNumber)
-                                            ?.apply()
-
-                                        parent.openPaymentConfirmation(response, requestId)
-                                    }
+                                    val parent = parentFragment as? MainDialogFragment
+                                    val prefs = context?.getSharedPreferences(BuildConfig.BASE_XML, Context.MODE_PRIVATE)
+                                    prefs?.edit()?.putString(requestId, response.phoneNumber)?.apply()
+                                    parent?.openPaymentConfirmation(response, requestId)
                                 }
                             }
                         )
@@ -498,11 +350,11 @@ class PaymentFragment : AppCompatDialogFragment() {
                 }
             }
             PaymentOptionEnum.USSD -> {
-                if (etMobileNumber.text.toString().isNotEmpty()) {
+                if (binding.etMobileNumber.text.toString().isNotEmpty()) {
                     showLoading()
                     clickMerchantManager.paymentByUSSD(
                         requestId,
-                        unmaskMobileNumber(etMobileNumber.text.toString()),
+                        unmaskMobileNumber(binding.etMobileNumber.text.toString()),
                         object : ResponseListener<InvoiceResponse> {
                             override fun onFailure(e: Exception) {
                                 showResult()
@@ -512,25 +364,19 @@ class PaymentFragment : AppCompatDialogFragment() {
 
                             override fun onSuccess(response: InvoiceResponse) {
                                 showResult()
-                                parentFragment?.let {
-                                    val parent = it as MainDialogFragment
-                                    parent.openInvoiceConfirmationPage(requestId)
-                                }
+                                (parentFragment as? MainDialogFragment)?.openInvoiceConfirmationPage(requestId)
                             }
                         })
-                } else etMobileNumber.error =
-                    LanguageUtils.getLocaleStringResource(
-                        locale,
-                        R.string.enter_valid_phone_number,
-                        context!!
-                    )
+                } else {
+                    binding.etMobileNumber.error = LanguageUtils.getLocaleStringResource(locale, R.string.enter_valid_phone_number, requireContext())
+                }
             }
             PaymentOptionEnum.CLICK_EVOLUTION -> {
                 listener?.closeDialog()
                 if (config.transactionParam == null) return
 
                 val builder = Uri.Builder()
-                builder.scheme("https")
+                    .scheme("https")
                     .authority("my.click.uz")
                     .appendPath("services")
                     .appendPath("pay")
@@ -539,12 +385,12 @@ class PaymentFragment : AppCompatDialogFragment() {
                     .appendQueryParameter("amount", "${config.amount}")
                     .appendQueryParameter("transaction_param", "${config.transactionParam}")
 
-                if (!config.returnUrl.isNullOrEmpty())
+                if (!config.returnUrl.isNullOrEmpty()) {
                     builder.appendQueryParameter("return_url", "${config.returnUrl}")
+                }
 
-                val uri = builder.build()
                 val i = Intent(Intent.ACTION_VIEW)
-                i.data = uri
+                i.data = builder.build()
                 startActivity(i)
             }
         }
@@ -554,86 +400,54 @@ class PaymentFragment : AppCompatDialogFragment() {
         return "+998" + number.replace(" ", "")
     }
 
-
     private fun showErrorMessage(e: Exception) {
         e.printStackTrace()
-        if (ErrorUtils.isApiError(e)) {
-            activity?.runOnUiThread {
-                tvError.show()
-                tvError.text = ErrorUtils.getErrorMessage(
-                    e,
-                    locale,
-                    context!!
-                )
+        activity?.runOnUiThread {
+            binding.tvError.show()
+            if (ErrorUtils.isApiError(e)) {
+                binding.tvError.text = ErrorUtils.getErrorMessage(e, locale, requireContext())
+            } else {
+                binding.tvError.text = LanguageUtils.getLocaleStringResource(locale, R.string.network_connection_error, requireContext())
             }
-        } else activity?.runOnUiThread {
-            tvError.show()
-            tvError.text = LanguageUtils.getLocaleStringResource(
-                locale, R.string.network_connection_error, context
-                !!
-            )
         }
     }
 
     private fun showLoading() {
         activity?.runOnUiThread {
-            llPaymentContainer.show()
-            pbLoading.show()
-            llBottomContainer.invisible()
-            llError.hide()
+            binding.llPaymentContainer.show()
+            binding.pbLoading.show()
+            binding.llBottomContainer.invisible()
+            binding.llError.hide()
         }
     }
 
     private fun showResult() {
         activity?.runOnUiThread {
-            llPaymentContainer.show()
-            llBottomContainer.show()
-            pbLoading.invisible()
-            llError.hide()
+            binding.llPaymentContainer.show()
+            binding.llBottomContainer.show()
+            binding.pbLoading.invisible()
+            binding.llError.hide()
         }
     }
 
     private fun showError() {
         activity?.runOnUiThread {
-            llPaymentContainer.hide()
-            llError.show()
-            pbLoading.hide()
+            binding.llPaymentContainer.hide()
+            binding.llError.show()
+            binding.pbLoading.hide()
         }
     }
 
-    fun paymentOptionSelected(
-        item: PaymentOption
-    ) {
+    fun paymentOptionSelected(item: PaymentOption) {
         mode = item.type
-        ivPaymentType.setImageDrawable(ContextCompat.getDrawable(context!!, item.image))
-        tvPaymentTypeTitle.text = item.title
-        tvPaymentTypeSubtitle.text = item.subtitle
-        when (item.type) {
-            PaymentOptionEnum.BANK_CARD -> {
-                llBankCard.show()
-                llUssd.hide()
-                if (shouldInitRequestId) {
-                    init()
-                    shouldInitRequestId = false
-                }
-            }
-            PaymentOptionEnum.USSD -> {
-                llBankCard.hide()
-                llUssd.show()
-                if (shouldInitRequestId) {
-                    init()
-                    shouldInitRequestId = false
-                }
-            }
-            PaymentOptionEnum.CLICK_EVOLUTION -> {
-                llBankCard.hide()
-                llUssd.hide()
-            }
-        }
+        binding.ivPaymentType.setImageDrawable(ContextCompat.getDrawable(requireContext(), item.image))
+        binding.tvPaymentTypeTitle.text = item.title
+        binding.tvPaymentTypeSubtitle.text = item.subtitle
+        updateUiForPaymentMode()
     }
 
     fun setScannedData(number: String, date: String) {
-        etCardDate.setText(date)
-        etCardNumber.setText(number)
+        binding.etCardDate.setText(date)
+        binding.etCardNumber.setText(number)
     }
 }
