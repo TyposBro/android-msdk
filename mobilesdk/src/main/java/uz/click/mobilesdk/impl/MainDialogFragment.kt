@@ -56,7 +56,7 @@ class MainDialogFragment : BottomSheetDialogFragment() {
             return
         }
         if (arguments == null) throw ArgumentEmptyException()
-        config = arguments!!.getSerializable(CLICK_MERCHANT_CONFIG) as ClickMerchantConfig
+        config = requireArguments().getSerializable(CLICK_MERCHANT_CONFIG) as ClickMerchantConfig
         when (config.themeMode) {
             ThemeOptions.LIGHT -> {
                 setStyle(STYLE_NO_FRAME, R.style.cl_MainDialogTheme)
@@ -72,7 +72,7 @@ class MainDialogFragment : BottomSheetDialogFragment() {
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
-        dialog.window?.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE)
+        dialog?.window?.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE)
         return when (config.themeMode) {
             ThemeOptions.LIGHT -> {
                 val contextWrapper = ContextThemeWrapper(activity, R.style.Theme_App_Light)
@@ -96,12 +96,14 @@ class MainDialogFragment : BottomSheetDialogFragment() {
         val onGlobalLayoutListener = ViewTreeObserver.OnGlobalLayoutListener {
             (dialog as? BottomSheetDialog)?.also { dialog ->
                 val bottomSheet =
-                    dialog.findViewById<FrameLayout?>(com.google.android.material.R.id.design_bottom_sheet)
-                BottomSheetBehavior.from(bottomSheet).apply {
-                    state = BottomSheetBehavior.STATE_EXPANDED
-                    skipCollapsed = true
-                    isHideable = true
-                    peekHeight = 0
+                    dialog.findViewById<FrameLayout>(com.google.android.material.R.id.design_bottom_sheet)
+                bottomSheet?.let {
+                    BottomSheetBehavior.from(it).apply {
+                        state = BottomSheetBehavior.STATE_EXPANDED
+                        skipCollapsed = true
+                        isHideable = true
+                        peekHeight = 0
+                    }
                 }
             }
         }
@@ -179,12 +181,12 @@ class MainDialogFragment : BottomSheetDialogFragment() {
 
     private fun appInstalledOrNot(uri: String): Boolean {
         val pm: PackageManager = requireContext().packageManager
-        try {
+        return try {
             pm.getPackageInfo(uri, PackageManager.GET_ACTIVITIES)
-            return true
+            true
         } catch (e: PackageManager.NameNotFoundException) {
+            false
         }
-        return false
     }
 
     fun setScannedData(number: String, date: String) {

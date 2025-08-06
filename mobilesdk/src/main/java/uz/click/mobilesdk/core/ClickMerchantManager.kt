@@ -4,8 +4,11 @@ import android.os.Handler
 import android.os.Looper
 import android.util.Log
 import com.squareup.moshi.Moshi
-import io.reactivex.Single
+import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory // Import the factory
+import io.reactivex.rxjava3.core.Single
 import okhttp3.*
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.logging.HttpLoggingInterceptor
 import uz.click.mobilesdk.BuildConfig
 import uz.click.mobilesdk.core.callbacks.ResponseListener
@@ -15,9 +18,6 @@ import uz.click.mobilesdk.utils.ErrorUtils
 import java.io.IOException
 import java.util.concurrent.TimeUnit
 
-/**
- * @author rahmatkhujaevs on 29/01/19
- * */
 class ClickMerchantManager {
 
     companion object {
@@ -25,7 +25,7 @@ class ClickMerchantManager {
         private const val CONNECT_TIME_OUT: Long = 10 * 1000 // 10 second
         private const val READ_TIME_OUT: Long = 10 * 1000 // 10 second
         private const val WRITE_TIME_OUT: Long = 10 * 1000 // 10 second
-        private val JSON = MediaType.parse("application/json; charset=utf-8")
+        private val JSON = "application/json; charset=utf-8".toMediaType()
         private const val INIT_URL = BuildConfig.API_ENDPOINT + "checkout/prepare"
         private const val CHECKOUT_URL = BuildConfig.API_ENDPOINT + "checkout/retrieve"
         private const val INVOICE_URL = BuildConfig.API_ENDPOINT + "checkout/invoice"
@@ -34,7 +34,10 @@ class ClickMerchantManager {
     }
 
     private var okClient: OkHttpClient
-    private var moshi = Moshi.Builder().build()
+    // Update the Moshi instance to include the KotlinJsonAdapterFactory
+    private var moshi = Moshi.Builder()
+        .add(KotlinJsonAdapterFactory())
+        .build()
     var invoiceCancelled = false
 
     init {
@@ -50,6 +53,7 @@ class ClickMerchantManager {
         okClient = okhttpClientBuilder.build()
     }
 
+    // ... rest of the file remains the same
     private fun loggingInterceptor(): Interceptor {
         val logging = HttpLoggingInterceptor()
         if (logs)
@@ -75,8 +79,8 @@ class ClickMerchantManager {
             language,
             ""
         )
-        val adapter = moshi.adapter<InitialRequest>(InitialRequest::class.java)
-        val body = RequestBody.create(JSON, adapter.toJson(initRequest))
+        val adapter = moshi.adapter(InitialRequest::class.java)
+        val body = adapter.toJson(initRequest).toRequestBody(JSON)
         val request = Request.Builder()
             .url(INIT_URL)
             .addHeader("Accept", "application/json")
@@ -91,19 +95,21 @@ class ClickMerchantManager {
 
             override fun onResponse(call: Call, response: Response) {
                 if (response.isSuccessful) {
-
-                    if (response.body() == null) {
-                        listener.onFailure(ServerNotAvailableException(response.code(), response.message()))
+                    val responseBody = response.body
+                    if (responseBody == null) {
+                        listener.onFailure(ServerNotAvailableException(response.code, response.message))
                         return
                     }
 
-                    response.body()?.let {
-                        val initialResponse = moshi.adapter<InitialResponse>(InitialResponse::class.java)
+                    responseBody.let {
+                        val initialResponse = moshi.adapter(InitialResponse::class.java)
                             .fromJson(it.string())
 
                         when (initialResponse?.errorCode) {
                             0 -> {
-                                listener.onSuccess(initialResponse)
+                                if (initialResponse != null) {
+                                    listener.onSuccess(initialResponse)
+                                }
                             }
                             else -> {
                                 listener.onFailure(
@@ -118,7 +124,7 @@ class ClickMerchantManager {
 
                 } else {
                     listener.onFailure(
-                        ServerNotAvailableException(response.code(), response.message())
+                        ServerNotAvailableException(response.code, response.message)
                     )
                 }
             }
@@ -141,14 +147,14 @@ class ClickMerchantManager {
 
             override fun onResponse(call: Call, response: Response) {
                 if (response.isSuccessful) {
-
-                    if (response.body() == null) {
-                        listener.onFailure(ServerNotAvailableException(response.code(), response.message()))
+                    val responseBody = response.body
+                    if (responseBody == null) {
+                        listener.onFailure(ServerNotAvailableException(response.code, response.message))
                         return
                     }
 
-                    response.body()?.let {
-                        val checkoutResponse = moshi.adapter<CheckoutResponse>(CheckoutResponse::class.java)
+                    responseBody.let {
+                        val checkoutResponse = moshi.adapter(CheckoutResponse::class.java)
                             .fromJson(it.string())
                         if (checkoutResponse?.payment != null) {
                             when {
@@ -173,7 +179,7 @@ class ClickMerchantManager {
                     }
 
                 } else listener.onFailure(
-                    ServerNotAvailableException(response.code(), response.message())
+                    ServerNotAvailableException(response.code, response.message)
                 )
             }
         })
@@ -193,20 +199,21 @@ class ClickMerchantManager {
             }
 
             override fun onResponse(call: Call, response: Response) {
-                if (response.body() == null) {
-                    listener.onFailure(ServerNotAvailableException(response.code(), response.message()))
+                val responseBody = response.body
+                if (responseBody == null) {
+                    listener.onFailure(ServerNotAvailableException(response.code, response.message))
                     return
                 }
 
-                response.body()?.let {
+                responseBody.let {
                     if (response.isSuccessful) {
-                        val checkoutResponse = moshi.adapter<CheckoutResponse>(CheckoutResponse::class.java)
+                        val checkoutResponse = moshi.adapter(CheckoutResponse::class.java)
                             .fromJson(it.string())
                         checkoutResponse?.let {
                             listener.onSuccess(checkoutResponse)
                         }
                     } else listener.onFailure(
-                        ServerNotAvailableException(response.code(), response.message())
+                        ServerNotAvailableException(response.code, response.message)
                     )
                 }
             }
@@ -218,8 +225,8 @@ class ClickMerchantManager {
 
         val invoice = InvoiceRequest(requestId, phoneNumber)
 
-        val adapter = moshi.adapter<InvoiceRequest>(InvoiceRequest::class.java)
-        val body = RequestBody.create(JSON, adapter.toJson(invoice))
+        val adapter = moshi.adapter(InvoiceRequest::class.java)
+        val body = adapter.toJson(invoice).toRequestBody(JSON)
         val request = Request.Builder()
             .url(INVOICE_URL)
             .addHeader("Accept", "application/json")
@@ -233,20 +240,22 @@ class ClickMerchantManager {
 
             override fun onResponse(call: Call, response: Response) {
                 if (response.isSuccessful) {
-
-                    if (response.body() == null) {
-                        listener.onFailure(ServerNotAvailableException(response.code(), response.message()))
+                    val responseBody = response.body
+                    if (responseBody == null) {
+                        listener.onFailure(ServerNotAvailableException(response.code, response.message))
                         return
                     }
 
-                    response.body()?.let {
+                    responseBody.let {
 
-                        val invoiceResponse = moshi.adapter<InvoiceResponse>(InvoiceResponse::class.java)
+                        val invoiceResponse = moshi.adapter(InvoiceResponse::class.java)
                             .fromJson(it.string())
 
                         when (invoiceResponse?.errorCode) {
                             0 -> {
-                                listener.onSuccess(invoiceResponse)
+                                if (invoiceResponse != null) {
+                                    listener.onSuccess(invoiceResponse)
+                                }
                             }
                             else -> {
                                 listener.onFailure(
@@ -261,7 +270,7 @@ class ClickMerchantManager {
 
                 } else {
                     listener.onFailure(
-                        ServerNotAvailableException(response.code(), response.message())
+                        ServerNotAvailableException(response.code, response.message)
                     )
                 }
             }
@@ -277,8 +286,8 @@ class ClickMerchantManager {
 
         val payment = CardPaymentRequest(requestId, cardNumber, expireDate)
 
-        val adapter = moshi.adapter<CardPaymentRequest>(CardPaymentRequest::class.java)
-        val body = RequestBody.create(JSON, adapter.toJson(payment))
+        val adapter = moshi.adapter(CardPaymentRequest::class.java)
+        val body = adapter.toJson(payment).toRequestBody(JSON)
         val request = Request.Builder()
             .url(CARD_PAYMENT_URL)
             .addHeader("Accept", "application/json")
@@ -292,19 +301,22 @@ class ClickMerchantManager {
 
             override fun onResponse(call: Call, response: Response) {
                 if (response.isSuccessful) {
-                    if (response.body() == null) {
-                        listener.onFailure(ServerNotAvailableException(response.code(), response.message()))
+                    val responseBody = response.body
+                    if (responseBody == null) {
+                        listener.onFailure(ServerNotAvailableException(response.code, response.message))
                         return
                     }
 
-                    response.body()?.let {
+                    responseBody.let {
 
                         val cardPaymentResponse =
-                            moshi.adapter<CardPaymentResponse>(CardPaymentResponse::class.java)
+                            moshi.adapter(CardPaymentResponse::class.java)
                                 .fromJson(it.string())
                         when (cardPaymentResponse?.errorCode) {
                             0 -> {
-                                listener.onSuccess(cardPaymentResponse)
+                                if (cardPaymentResponse != null) {
+                                    listener.onSuccess(cardPaymentResponse)
+                                }
                             }
                             else -> {
                                 listener.onFailure(
@@ -318,7 +330,7 @@ class ClickMerchantManager {
                     }
 
                 } else listener.onFailure(
-                    ServerNotAvailableException(response.code(), response.message())
+                    ServerNotAvailableException(response.code, response.message)
                 )
             }
         })
@@ -331,8 +343,8 @@ class ClickMerchantManager {
     ) {
         val confirm = ConfirmPaymentByCardRequest(requestId, confirmCode)
 
-        val adapter = moshi.adapter<ConfirmPaymentByCardRequest>(ConfirmPaymentByCardRequest::class.java)
-        val body = RequestBody.create(JSON, adapter.toJson(confirm))
+        val adapter = moshi.adapter(ConfirmPaymentByCardRequest::class.java)
+        val body = adapter.toJson(confirm).toRequestBody(JSON)
         val request = Request.Builder()
             .url(CARD_PAYMENT_CONFIRM_URL)
             .addHeader("Accept", "application/json")
@@ -346,19 +358,22 @@ class ClickMerchantManager {
 
             override fun onResponse(call: Call, response: Response) {
                 if (response.isSuccessful) {
-                    if (response.body() == null) {
-                        listener.onFailure(ServerNotAvailableException(response.code(), response.message()))
+                    val responseBody = response.body
+                    if (responseBody == null) {
+                        listener.onFailure(ServerNotAvailableException(response.code, response.message))
                         return
                     }
 
-                    response.body()?.let {
+                    responseBody.let {
 
                         val confirmResponse =
-                            moshi.adapter<ConfirmPaymentByCardResponse>(ConfirmPaymentByCardResponse::class.java)
+                            moshi.adapter(ConfirmPaymentByCardResponse::class.java)
                                 .fromJson(it.string())
                         when (confirmResponse?.errorCode) {
                             0 -> {
-                                listener.onSuccess(confirmResponse)
+                                if (confirmResponse != null) {
+                                    listener.onSuccess(confirmResponse)
+                                }
                             }
                             else -> {
                                 listener.onFailure(
@@ -372,7 +387,7 @@ class ClickMerchantManager {
                     }
 
                 } else listener.onFailure(
-                    ServerNotAvailableException(response.code(), response.message())
+                    ServerNotAvailableException(response.code, response.message)
                 )
             }
 
@@ -393,19 +408,22 @@ class ClickMerchantManager {
 
             override fun onResponse(call: Call, response: Response) {
                 if (response.isSuccessful) {
-                    if (response.body() == null) {
-                        listener.onFailure(ServerNotAvailableException(response.code(), response.message()))
+                    val responseBody = response.body
+                    if (responseBody == null) {
+                        listener.onFailure(ServerNotAvailableException(response.code, response.message))
                         return
                     }
 
-                    response.body()?.let {
+                    responseBody.let {
 
                         val checkResponse =
-                            moshi.adapter<CheckPaymentResponse>(CheckPaymentResponse::class.java)
+                            moshi.adapter(CheckPaymentResponse::class.java)
                                 .fromJson(it.string())
                         when (checkResponse?.errorCode) {
                             0 -> {
-                                listener.onSuccess(checkResponse)
+                                if (checkResponse != null) {
+                                    listener.onSuccess(checkResponse)
+                                }
                             }
                             else -> {
                                 listener.onFailure(
@@ -416,7 +434,7 @@ class ClickMerchantManager {
                     }
 
                 } else listener.onFailure(
-                    ServerNotAvailableException(response.code(), response.message())
+                    ServerNotAvailableException(response.code, response.message)
                 )
             }
         })
@@ -427,16 +445,16 @@ class ClickMerchantManager {
         amount: Double, transactionParam: String?, communalParam: String?,
         merchantUserId: Long, language: String
     ): Single<InitialResponse> {
-        return Single.create<InitialResponse> {
+        return Single.create { emitter ->
             sendInitialRequest(serviceId, merchantId, amount, transactionParam, communalParam,
                 merchantUserId, language,
                 object : ResponseListener<InitialResponse> {
                     override fun onFailure(e: Exception) {
-                        it.onError(e.cause!!)
+                        emitter.onError(e.cause!!)
                     }
 
                     override fun onSuccess(response: InitialResponse) {
-                        it.onSuccess(response)
+                        emitter.onSuccess(response)
                     }
                 }
             )
@@ -444,15 +462,15 @@ class ClickMerchantManager {
     }
 
     fun checkPaymentByRequestIdRx(requestId: String): Single<CheckoutResponse> {
-        return Single.create<CheckoutResponse> {
+        return Single.create { emitter ->
             checkPaymentByRequestId(requestId,
                 object : ResponseListener<CheckoutResponse> {
                     override fun onFailure(e: Exception) {
-                        it.onError(e.cause!!)
+                        emitter.onError(e.cause!!)
                     }
 
                     override fun onSuccess(response: CheckoutResponse) {
-                        it.onSuccess(response)
+                        emitter.onSuccess(response)
                     }
                 }
             )
@@ -460,15 +478,15 @@ class ClickMerchantManager {
     }
 
     fun paymentByUSSDRx(requestId: String, phoneNumber: String): Single<InvoiceResponse> {
-        return Single.create<InvoiceResponse> {
+        return Single.create { emitter ->
             paymentByUSSD(requestId, phoneNumber,
                 object : ResponseListener<InvoiceResponse> {
                     override fun onFailure(e: Exception) {
-                        it.onError(e.cause!!)
+                        emitter.onError(e.cause!!)
                     }
 
                     override fun onSuccess(response: InvoiceResponse) {
-                        it.onSuccess(response)
+                        emitter.onSuccess(response)
                     }
                 }
             )
@@ -480,15 +498,15 @@ class ClickMerchantManager {
         cardNumber: String,
         expireDate: String
     ): Single<CardPaymentResponse> {
-        return Single.create<CardPaymentResponse> {
+        return Single.create { emitter ->
             paymentByCard(requestId, cardNumber, expireDate,
                 object : ResponseListener<CardPaymentResponse> {
                     override fun onFailure(e: Exception) {
-                        it.onError(e.cause!!)
+                        emitter.onError(e.cause!!)
                     }
 
                     override fun onSuccess(response: CardPaymentResponse) {
-                        it.onSuccess(response)
+                        emitter.onSuccess(response)
                     }
                 }
             )
@@ -499,15 +517,15 @@ class ClickMerchantManager {
         requestId: String,
         confirmCode: String
     ): Single<ConfirmPaymentByCardResponse> {
-        return Single.create<ConfirmPaymentByCardResponse> {
+        return Single.create { emitter ->
             confirmPaymentByCard(requestId, confirmCode,
                 object : ResponseListener<ConfirmPaymentByCardResponse> {
                     override fun onFailure(e: Exception) {
-                        it.onError(e.cause!!)
+                        emitter.onError(e.cause!!)
                     }
 
                     override fun onSuccess(response: ConfirmPaymentByCardResponse) {
-                        it.onSuccess(response)
+                        emitter.onSuccess(response)
                     }
                 }
             )
@@ -515,15 +533,15 @@ class ClickMerchantManager {
     }
 
     fun checkPaymentRx(serviceId: String, paymentId: String): Single<CheckPaymentResponse> {
-        return Single.create<CheckPaymentResponse> {
+        return Single.create { emitter ->
             checkPayment(serviceId, paymentId,
                 object : ResponseListener<CheckPaymentResponse> {
                     override fun onFailure(e: Exception) {
-                        it.onError(e.cause!!)
+                        emitter.onError(e.cause!!)
                     }
 
                     override fun onSuccess(response: CheckPaymentResponse) {
-                        it.onSuccess(response)
+                        emitter.onSuccess(response)
                     }
                 }
             )

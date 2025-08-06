@@ -7,70 +7,40 @@ import androidx.recyclerview.widget.RecyclerView
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.ImageView
-import android.widget.TextView
-import kotlinx.android.synthetic.main.item_payment_option.view.*
 import uz.click.mobilesdk.R
+import uz.click.mobilesdk.databinding.ItemPaymentOptionBinding
 
-/**
- * @author rahmatkhujaevs on 29/01/19
- * */
 class PaymentOptionAdapter(
     val context: Context,
     val themeMode: ThemeOptions = ThemeOptions.LIGHT,
     val items: ArrayList<PaymentOption>
 ) :
-    androidx.recyclerview.widget.RecyclerView.Adapter<PaymentOptionAdapter.PaymentOptionViewHolder>() {
+    RecyclerView.Adapter<PaymentOptionAdapter.PaymentOptionViewHolder>() {
 
     lateinit var callback: OnPaymentOptionSelected
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): PaymentOptionViewHolder {
-        when (themeMode) {
-            ThemeOptions.LIGHT -> {
-                val contextWrapper = ContextThemeWrapper(parent.context, R.style.Theme_App_Light)
-
-                return PaymentOptionViewHolder(
-                    LayoutInflater.from(context).cloneInContext(contextWrapper).inflate(
-                        R.layout.item_payment_option,
-                        parent,
-                        false
-                    )
-                )
-            }
-            ThemeOptions.NIGHT -> {
-                val contextWrapper = ContextThemeWrapper(parent.context, R.style.Theme_App_Dark)
-
-                return PaymentOptionViewHolder(
-                    LayoutInflater.from(context).cloneInContext(contextWrapper).inflate(
-                        R.layout.item_payment_option,
-                        parent,
-                        false
-                    )
-                )
-            }
-        }
-
+        val inflater = LayoutInflater.from(parent.context)
+        val binding = ItemPaymentOptionBinding.inflate(inflater, parent, false)
+        return PaymentOptionViewHolder(binding)
     }
 
     override fun getItemCount(): Int = items.size
 
     override fun onBindViewHolder(holder: PaymentOptionViewHolder, position: Int) {
-        holder.image.setImageDrawable(ContextCompat.getDrawable(context, items[position].image))
-        holder.title.text = items[position].title
-        holder.subtitle.text = items[position].subtitle
-
-        holder.divider.visibility = if (position == items.size - 1) View.INVISIBLE else View.VISIBLE
-
+        holder.bind(items[position], position == items.size - 1)
         holder.itemView.setOnClickListener {
             callback.selected(position, items[position])
         }
     }
 
-    class PaymentOptionViewHolder(itemView: View) : androidx.recyclerview.widget.RecyclerView.ViewHolder(itemView) {
-        val image: ImageView = itemView.ivOptionImage
-        val title: TextView = itemView.tvOptionTitle
-        val subtitle: TextView = itemView.tvOptionSubtitle
-        val divider: View = itemView.divider
+    class PaymentOptionViewHolder(private val binding: ItemPaymentOptionBinding) : RecyclerView.ViewHolder(binding.root) {
+        fun bind(item: PaymentOption, isLastItem: Boolean) {
+            binding.ivOptionImage.setImageDrawable(ContextCompat.getDrawable(binding.root.context, item.image))
+            binding.tvOptionTitle.text = item.title
+            binding.tvOptionSubtitle.text = item.subtitle
+            binding.divider.visibility = if (isLastItem) View.INVISIBLE else View.VISIBLE
+        }
     }
 
     interface OnPaymentOptionSelected {

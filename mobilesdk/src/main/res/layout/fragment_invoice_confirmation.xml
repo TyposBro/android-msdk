@@ -29,15 +29,12 @@
                 android:textColor="?attr/colorMainText"
                 android:textSize="18sp" />
 
-
-            <com.wang.avi.AVLoadingIndicatorView
+            <ProgressBar
                 android:id="@+id/progressIndicator"
-                style="@style/AVLoadingIndicatorView"
-                android:layout_width="wrap_content"
+                style="?android:attr/progressBarStyle"
+                android:layout_width="40dp"
                 android:layout_height="40dp"
-                android:layout_gravity="center"
-                app:indicatorColor="?attr/colorButtonDisabled"
-                app:indicatorName="BallPulseIndicator" />
+                android:layout_gravity="center" />
 
         </LinearLayout>
 
@@ -115,7 +112,7 @@
                 android:layout_height="32dp"
                 android:layout_gravity="center"
                 android:src="@drawable/ic_next"
-                android:tint="?attr/colorNextIcon" />
+                app:tint="?attr/colorNextIcon" />
 
         </LinearLayout>
 
@@ -168,7 +165,7 @@
                 android:layout_height="32dp"
                 android:layout_gravity="center"
                 android:src="@drawable/ic_next"
-                android:tint="?attr/colorNextIcon" />
+                app:tint="?attr/colorNextIcon" />
 
         </LinearLayout>
 
@@ -221,7 +218,7 @@
                 android:layout_height="32dp"
                 android:layout_gravity="center"
                 android:src="@drawable/ic_next"
-                android:tint="?attr/colorNextIcon" />
+                app:tint="?attr/colorNextIcon" />
 
         </LinearLayout>
 

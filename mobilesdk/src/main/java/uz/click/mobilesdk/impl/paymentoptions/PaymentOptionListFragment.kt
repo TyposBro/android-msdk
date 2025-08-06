@@ -7,30 +7,31 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import kotlinx.android.synthetic.main.fragment_payment_option.*
 import uz.click.mobilesdk.R
 import uz.click.mobilesdk.core.errors.ArgumentEmptyException
+import uz.click.mobilesdk.databinding.FragmentPaymentOptionBinding
 import uz.click.mobilesdk.impl.MainDialogFragment
 import uz.click.mobilesdk.impl.MainDialogFragment.Companion.IS_CLICK_EVOLUTION_ENABLED
 import uz.click.mobilesdk.impl.MainDialogFragment.Companion.LOCALE
 import uz.click.mobilesdk.impl.MainDialogFragment.Companion.THEME_MODE
 import uz.click.mobilesdk.utils.LanguageUtils
 import java.util.*
+import kotlin.collections.ArrayList
 
-/**
- * @author rahmatkhujaevs on 29/01/19
- * */
 class PaymentOptionListFragment : AppCompatDialogFragment() {
+
+    private var _binding: FragmentPaymentOptionBinding? = null
+    private val binding get() = _binding!!
+
     private lateinit var themeMode: ThemeOptions
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         if (arguments == null) throw ArgumentEmptyException()
-        themeMode = arguments!!.getSerializable(THEME_MODE) as ThemeOptions
+        themeMode = requireArguments().getSerializable(THEME_MODE) as ThemeOptions
         when (themeMode) {
             ThemeOptions.LIGHT -> {
                 setStyle(STYLE_NO_FRAME, R.style.cl_FullscreenDialogTheme)
-
             }
             ThemeOptions.NIGHT -> {
                 setStyle(STYLE_NO_FRAME, R.style.cl_FullscreenDialogThemeDark)
@@ -42,22 +43,18 @@ class PaymentOptionListFragment : AppCompatDialogFragment() {
         inflater: LayoutInflater,
         container: ViewGroup?,
         savedInstanceState: Bundle?
-    ): View? {
-        return when (themeMode) {
-            ThemeOptions.LIGHT -> {
-                val contextWrapper = ContextThemeWrapper(activity, R.style.Theme_App_Light)
-
-                inflater.cloneInContext(contextWrapper)
-                    .inflate(R.layout.fragment_payment_option, container, false)
-            }
-            ThemeOptions.NIGHT -> {
-                val contextWrapper = ContextThemeWrapper(activity, R.style.Theme_App_Dark)
-
-                inflater.cloneInContext(contextWrapper)
-                    .inflate(R.layout.fragment_payment_option, container, false)
-            }
+    ): View {
+        val contextWrapper = when (themeMode) {
+            ThemeOptions.LIGHT -> ContextThemeWrapper(activity, R.style.Theme_App_Light)
+            ThemeOptions.NIGHT -> ContextThemeWrapper(activity, R.style.Theme_App_Dark)
         }
+        _binding = FragmentPaymentOptionBinding.inflate(inflater.cloneInContext(contextWrapper), container, false)
+        return binding.root
+    }
 
+    override fun onDestroyView() {
+        super.onDestroyView()
+        _binding = null
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -66,12 +63,12 @@ class PaymentOptionListFragment : AppCompatDialogFragment() {
         val parent = parentFragment as MainDialogFragment
 
         if (arguments != null) {
-            val locale = Locale(arguments!!.getString(LOCALE, "ru"))
-            tvTitle.text =
-                LanguageUtils.getLocaleStringResource(locale, R.string.payment_types, context!!)
+            val locale = Locale(requireArguments().getString(LOCALE, "ru"))
+            binding.tvTitle.text =
+                LanguageUtils.getLocaleStringResource(locale, R.string.payment_types, requireContext())
             val items = ArrayList<PaymentOption>()
 
-            val isClickEvolutionEnabled = arguments!!.getBoolean(IS_CLICK_EVOLUTION_ENABLED, false)
+            val isClickEvolutionEnabled = requireArguments().getBoolean(IS_CLICK_EVOLUTION_ENABLED, false)
 
             if (isClickEvolutionEnabled) {
                 items.add(
@@ -80,12 +77,12 @@ class PaymentOptionListFragment : AppCompatDialogFragment() {
                         LanguageUtils.getLocaleStringResource(
                             locale,
                             R.string.click_evo_app,
-                            context!!
+                            requireContext()
                         ),
                         LanguageUtils.getLocaleStringResource(
                             locale,
                             R.string.click_evo_app_description,
-                            context!!
+                            requireContext()
                         ),
                         PaymentOptionEnum.CLICK_EVOLUTION
                     )
@@ -95,11 +92,11 @@ class PaymentOptionListFragment : AppCompatDialogFragment() {
             items.add(
                 PaymentOption(
                     R.drawable.ic_880,
-                    LanguageUtils.getLocaleStringResource(locale, R.string.invoicing, context!!),
+                    LanguageUtils.getLocaleStringResource(locale, R.string.invoicing, requireContext()),
                     LanguageUtils.getLocaleStringResource(
                         locale,
                         R.string.sms_confirmation,
-                        context!!
+                        requireContext()
                     ),
                     PaymentOptionEnum.USSD
                 )
@@ -107,12 +104,12 @@ class PaymentOptionListFragment : AppCompatDialogFragment() {
             items.add(
                 PaymentOption(
                     R.drawable.ic_cards,
-                    LanguageUtils.getLocaleStringResource(locale, R.string.bank_card, context!!),
-                    LanguageUtils.getLocaleStringResource(locale, R.string.card_props, context!!),
+                    LanguageUtils.getLocaleStringResource(locale, R.string.bank_card, requireContext()),
+                    LanguageUtils.getLocaleStringResource(locale, R.string.card_props, requireContext()),
                     PaymentOptionEnum.BANK_CARD
                 )
             )
-            val adapter = PaymentOptionAdapter(context!!, themeMode, items)
+            val adapter = PaymentOptionAdapter(requireContext(), themeMode, items)
 
             adapter.callback = object : PaymentOptionAdapter.OnPaymentOptionSelected {
                 override fun selected(position: Int, item: PaymentOption) {
@@ -120,8 +117,8 @@ class PaymentOptionListFragment : AppCompatDialogFragment() {
                 }
             }
 
-            rvPaymentTypes.layoutManager = androidx.recyclerview.widget.LinearLayoutManager(context)
-            rvPaymentTypes.adapter = adapter
+            binding.rvPaymentTypes.layoutManager = LinearLayoutManager(context)
+            binding.rvPaymentTypes.adapter = adapter
         } else throw ArgumentEmptyException()
     }
 }

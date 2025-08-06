@@ -7,9 +7,9 @@ import com.squareup.moshi.Json
  * */
 data class InitialResponse(
     @field:Json(name = "error_code")
-    val errorCode: Int,
+    val errorCode: Int?, // Changed to nullable
     @field:Json(name = "error_note")
-    val errorNote: String,
+    val errorNote: String?, // Changed to nullable
     @field:Json(name = "request_id")
-    val requestId: String
+    val requestId: String?
 )

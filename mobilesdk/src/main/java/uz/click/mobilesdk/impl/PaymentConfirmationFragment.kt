@@ -8,7 +8,6 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.view.inputmethod.EditorInfo
-import kotlinx.android.synthetic.main.fragment_confirm_payment.*
 import uz.click.mobilesdk.BuildConfig
 import uz.click.mobilesdk.R
 import uz.click.mobilesdk.core.ClickMerchantManager
@@ -17,23 +16,19 @@ import uz.click.mobilesdk.core.data.CardPaymentResponse
 import uz.click.mobilesdk.core.data.ConfirmPaymentByCardResponse
 import uz.click.mobilesdk.core.data.PaymentResponse
 import uz.click.mobilesdk.core.errors.ArgumentEmptyException
+import uz.click.mobilesdk.databinding.FragmentConfirmPaymentBinding
 import uz.click.mobilesdk.impl.MainDialogFragment.Companion.LOCALE
 import uz.click.mobilesdk.impl.MainDialogFragment.Companion.REQUEST_ID
 import uz.click.mobilesdk.impl.MainDialogFragment.Companion.THEME_MODE
 import uz.click.mobilesdk.impl.paymentoptions.ThemeOptions
-import uz.click.mobilesdk.utils.ErrorUtils
-import uz.click.mobilesdk.utils.LanguageUtils
-import uz.click.mobilesdk.utils.hide
-import uz.click.mobilesdk.utils.hideKeyboard
-import uz.click.mobilesdk.utils.invisible
-import uz.click.mobilesdk.utils.show
+import uz.click.mobilesdk.utils.*
 import java.lang.IllegalStateException
 import java.util.*
 
-/**
- * @author rahmatkhujaevs on 29/01/19
- * */
 class PaymentConfirmationFragment : AppCompatDialogFragment() {
+
+    private var _binding: FragmentConfirmPaymentBinding? = null
+    private val binding get() = _binding!!
 
     private var payment: CardPaymentResponse? = null
     private var requestId: String? = ""
@@ -44,11 +39,10 @@ class PaymentConfirmationFragment : AppCompatDialogFragment() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         if (arguments == null) throw ArgumentEmptyException()
-        themeMode = arguments!!.getSerializable(THEME_MODE) as ThemeOptions
+        themeMode = requireArguments().getSerializable(THEME_MODE) as ThemeOptions
         when (themeMode) {
             ThemeOptions.LIGHT -> {
                 setStyle(STYLE_NO_FRAME, R.style.cl_FullscreenDialogTheme)
-
             }
             ThemeOptions.NIGHT -> {
                 setStyle(STYLE_NO_FRAME, R.style.cl_FullscreenDialogThemeDark)
@@ -60,92 +54,86 @@ class PaymentConfirmationFragment : AppCompatDialogFragment() {
         inflater: LayoutInflater,
         container: ViewGroup?,
         savedInstanceState: Bundle?
-    ): View? {
-        return when (themeMode) {
-            ThemeOptions.LIGHT -> {
-                val contextWrapper = ContextThemeWrapper(activity, R.style.Theme_App_Light)
-
-                inflater.cloneInContext(contextWrapper)
-                    .inflate(R.layout.fragment_confirm_payment, container, false)
-            }
-            ThemeOptions.NIGHT -> {
-                val contextWrapper = ContextThemeWrapper(activity, R.style.Theme_App_Dark)
-
-                inflater.cloneInContext(contextWrapper)
-                    .inflate(R.layout.fragment_confirm_payment, container, false)
-            }
+    ): View {
+        val contextWrapper = when (themeMode) {
+            ThemeOptions.LIGHT -> ContextThemeWrapper(activity, R.style.Theme_App_Light)
+            ThemeOptions.NIGHT -> ContextThemeWrapper(activity, R.style.Theme_App_Dark)
         }
-
+        _binding = FragmentConfirmPaymentBinding.inflate(inflater.cloneInContext(contextWrapper), container, false)
+        return binding.root
     }
 
+    override fun onDestroyView() {
+        super.onDestroyView()
+        _binding = null
+    }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         when (themeMode) {
             ThemeOptions.LIGHT -> {
-                btnNext.setBackgroundResource(R.drawable.next_button_rounded)
-                viewMobileNumberUnderline.setBackgroundResource(R.drawable.underline_background)
+                binding.btnNext.setBackgroundResource(R.drawable.next_button_rounded)
+                binding.viewMobileNumberUnderline.setBackgroundResource(R.drawable.underline_background)
             }
             ThemeOptions.NIGHT -> {
-                btnNext.setBackgroundResource(R.drawable.next_button_rounded_dark)
-                viewMobileNumberUnderline.setBackgroundResource(R.drawable.underline_background_dark)
-
+                binding.btnNext.setBackgroundResource(R.drawable.next_button_rounded_dark)
+                binding.viewMobileNumberUnderline.setBackgroundResource(R.drawable.underline_background_dark)
             }
         }
         if (arguments != null) {
             payment =
-                arguments!!.getSerializable(MainDialogFragment.PAYMENT_RESULT) as CardPaymentResponse?
-            requestId = arguments!!.getString(REQUEST_ID)
-            locale = Locale(arguments!!.getString(LOCALE, "ru"))
-            tvTitle.text =
-                LanguageUtils.getLocaleStringResource(locale, R.string.confirm_with_sms, context!!)
-            tvSubtitle.text =
-                LanguageUtils.getLocaleStringResource(locale, R.string.sms_code_sent, context!!)
-            tvNext.text = LanguageUtils.getLocaleStringResource(locale, R.string.next, context!!)
-            tvMobileNumberOwner.text =
+                requireArguments().getSerializable(MainDialogFragment.PAYMENT_RESULT) as CardPaymentResponse?
+            requestId = requireArguments().getString(REQUEST_ID)
+            locale = Locale(requireArguments().getString(LOCALE, "ru"))
+            binding.tvTitle.text =
+                LanguageUtils.getLocaleStringResource(locale, R.string.confirm_with_sms, requireContext())
+            binding.tvSubtitle.text =
+                LanguageUtils.getLocaleStringResource(locale, R.string.sms_code_sent, requireContext())
+            binding.tvNext.text = LanguageUtils.getLocaleStringResource(locale, R.string.next, requireContext())
+            binding.tvMobileNumberOwner.text =
                 LanguageUtils.getLocaleStringResource(
                     locale,
                     R.string.owner_mobile_number,
-                    context!!
+                    requireContext()
                 )
 
-            etCode.hint =
-                LanguageUtils.getLocaleStringResource(locale, R.string.sms_code, context!!)
+            binding.etCode.hint =
+                LanguageUtils.getLocaleStringResource(locale, R.string.sms_code, requireContext())
 
-            tvMobileNumber.text = if (payment != null) "+" + payment?.phoneNumber else {
+            binding.tvMobileNumber.text = if (payment != null) "+" + payment?.phoneNumber else {
                 val prefs =
                     context?.getSharedPreferences(BuildConfig.BASE_XML, Context.MODE_PRIVATE)
                 prefs?.getString(requestId, "")
             }
         } else throw ArgumentEmptyException()
 
-        etCode.setOnEditorActionListener { _, actionId, _ ->
+        binding.etCode.setOnEditorActionListener { _, actionId, _ ->
             if (actionId == EditorInfo.IME_ACTION_DONE) {
                 confirm()
-                etCode.hideKeyboard()
+                binding.etCode.hideKeyboard()
             }
             true
         }
 
-        btnNext.setOnClickListener {
+        binding.btnNext.setOnClickListener {
             confirm()
-            btnNext.hideKeyboard()
+            binding.btnNext.hideKeyboard()
         }
 
-        etCode.onFocusChangeListener = View.OnFocusChangeListener { _, hasFocus ->
-            viewMobileNumberUnderline.isEnabled = !hasFocus
+        binding.etCode.onFocusChangeListener = View.OnFocusChangeListener { _, hasFocus ->
+            binding.viewMobileNumberUnderline.isEnabled = !hasFocus
         }
     }
 
     private fun confirm() {
-        if (etCode.text.toString().isEmpty()) {
-            etCode.error =
-                LanguageUtils.getLocaleStringResource(locale, R.string.enter_code, context!!)
+        if (binding.etCode.text.toString().isEmpty()) {
+            binding.etCode.error =
+                LanguageUtils.getLocaleStringResource(locale, R.string.enter_code, requireContext())
         } else {
             showLoading()
             clickMerchantManager.confirmPaymentByCard(
                 requestId!!,
-                etCode.text.toString(),
+                binding.etCode.text.toString(),
                 object : ResponseListener<ConfirmPaymentByCardResponse> {
                     override fun onFailure(e: Exception) {
                         e.printStackTrace()
@@ -170,9 +158,9 @@ class PaymentConfirmationFragment : AppCompatDialogFragment() {
 
     private fun showError() {
         activity?.runOnUiThread {
-            pbLoading.hide()
-            llContainer.show()
-            tvError.show()
+            binding.pbLoading.hide()
+            binding.llContainer.show()
+            binding.tvError.show()
         }
     }
 
@@ -180,34 +168,34 @@ class PaymentConfirmationFragment : AppCompatDialogFragment() {
         e.printStackTrace()
         if (ErrorUtils.isApiError(e)) {
             activity?.runOnUiThread {
-                tvError.show()
-                tvError.text = ErrorUtils.getErrorMessage(
+                binding.tvError.show()
+                binding.tvError.text = ErrorUtils.getErrorMessage(
                     e,
                     locale,
-                    context!!
+                    requireContext()
                 )
             }
         } else activity?.runOnUiThread {
-            tvError.show()
-            tvError.text = LanguageUtils.getLocaleStringResource(
+            binding.tvError.show()
+            binding.tvError.text = LanguageUtils.getLocaleStringResource(
                 locale,
                 R.string.network_connection_error,
-                context!!
+                requireContext()
             )
         }
     }
 
     private fun showLoading() {
-        pbLoading.show()
-        llContainer.invisible()
-        tvError.hide()
+        binding.pbLoading.show()
+        binding.llContainer.invisible()
+        binding.tvError.hide()
     }
 
     private fun hideLoading() {
         activity?.runOnUiThread {
-            pbLoading?.hide()
-            llContainer?.show()
-            tvError?.hide()
+            _binding?.pbLoading?.hide()
+            _binding?.llContainer?.show()
+            _binding?.tvError?.hide()
         }
     }
 }

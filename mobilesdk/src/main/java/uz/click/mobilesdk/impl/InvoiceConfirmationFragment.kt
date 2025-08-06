@@ -8,22 +8,23 @@ import androidx.appcompat.view.ContextThemeWrapper
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import kotlinx.android.synthetic.main.fragment_invoice_confirmation.*
 import uz.click.mobilesdk.R
 import uz.click.mobilesdk.core.ClickMerchantManager
 import uz.click.mobilesdk.core.callbacks.ResponseListener
 import uz.click.mobilesdk.core.data.CheckoutResponse
 import uz.click.mobilesdk.core.errors.ArgumentEmptyException
+import uz.click.mobilesdk.databinding.FragmentInvoiceConfirmationBinding
 import uz.click.mobilesdk.impl.MainDialogFragment.Companion.THEME_MODE
 import uz.click.mobilesdk.impl.paymentoptions.ThemeOptions
 import uz.click.mobilesdk.utils.ContextUtils.isAppAvailable
 import uz.click.mobilesdk.utils.LanguageUtils
+import uz.click.mobilesdk.utils.show
 import java.util.*
 
-/**
- * @author rahmatkhujaevs on 29/01/19
- * */
 class InvoiceConfirmationFragment : AppCompatDialogFragment() {
+
+    private var _binding: FragmentInvoiceConfirmationBinding? = null
+    private val binding get() = _binding!!
 
     private var requestId = ""
     private val clickMerchantManager = ClickMerchantManager()
@@ -40,7 +41,7 @@ class InvoiceConfirmationFragment : AppCompatDialogFragment() {
         super.onCreate(savedInstanceState)
         if (arguments == null) throw ArgumentEmptyException()
 
-        themeMode = arguments!!.getSerializable(THEME_MODE) as ThemeOptions
+        themeMode = requireArguments().getSerializable(THEME_MODE) as ThemeOptions
         when (themeMode) {
             ThemeOptions.LIGHT -> {
                 setStyle(STYLE_NO_FRAME, R.style.cl_FullscreenDialogTheme)
@@ -55,22 +56,18 @@ class InvoiceConfirmationFragment : AppCompatDialogFragment() {
         inflater: LayoutInflater,
         container: ViewGroup?,
         savedInstanceState: Bundle?
-    ): View? {
-        return when (themeMode) {
-            ThemeOptions.LIGHT -> {
-                val contextWrapper = ContextThemeWrapper(activity, R.style.Theme_App_Light)
-
-                inflater.cloneInContext(contextWrapper)
-                    .inflate(R.layout.fragment_invoice_confirmation, container, false)
-            }
-            ThemeOptions.NIGHT -> {
-                val contextWrapper = ContextThemeWrapper(activity, R.style.Theme_App_Dark)
-
-                inflater.cloneInContext(contextWrapper)
-                    .inflate(R.layout.fragment_invoice_confirmation, container, false)
-            }
+    ): View {
+        val contextWrapper = when (themeMode) {
+            ThemeOptions.LIGHT -> ContextThemeWrapper(activity, R.style.Theme_App_Light)
+            ThemeOptions.NIGHT -> ContextThemeWrapper(activity, R.style.Theme_App_Dark)
         }
+        _binding = FragmentInvoiceConfirmationBinding.inflate(inflater.cloneInContext(contextWrapper), container, false)
+        return binding.root
+    }
 
+    override fun onDestroyView() {
+        super.onDestroyView()
+        _binding = null
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -79,63 +76,65 @@ class InvoiceConfirmationFragment : AppCompatDialogFragment() {
         val listener = (parentFragment as MainDialogFragment?)?.getListener()
         when (themeMode) {
             ThemeOptions.LIGHT -> {
-                btnBack.setBackgroundResource(R.drawable.next_button_rounded)
+                binding.btnBack.setBackgroundResource(R.drawable.next_button_rounded)
             }
             ThemeOptions.NIGHT -> {
-                btnBack.setBackgroundResource(R.drawable.next_button_rounded_dark)
+                binding.btnBack.setBackgroundResource(R.drawable.next_button_rounded_dark)
             }
         }
 
         if (arguments != null) {
-            requestId = arguments!!.getString(MainDialogFragment.REQUEST_ID, "")
-            val locale = Locale(arguments!!.getString(MainDialogFragment.LOCALE, "ru"))
-            tvTitle.text = LanguageUtils.getLocaleStringResource(
+            requestId = requireArguments().getString(MainDialogFragment.REQUEST_ID, "")
+            val locale = Locale(requireArguments().getString(MainDialogFragment.LOCALE, "ru"))
+            binding.tvTitle.text = LanguageUtils.getLocaleStringResource(
                 locale,
                 R.string.waiting_confirmation,
-                context!!
+                requireContext()
             )
-            tvSubtitle.text =
-                LanguageUtils.getLocaleStringResource(locale, R.string.invoice_placed, context!!)
-            tvConfirmMethods.text =
-                LanguageUtils.getLocaleStringResource(locale, R.string.ways_to_confirm, context!!)
-            tvBack.text = LanguageUtils.getLocaleStringResource(locale, R.string.cancel, context!!)
-            tvBotInfo.text = LanguageUtils.getLocaleStringResource(
+            binding.tvSubtitle.text =
+                LanguageUtils.getLocaleStringResource(locale, R.string.invoice_placed, requireContext())
+            binding.tvConfirmMethods.text =
+                LanguageUtils.getLocaleStringResource(locale, R.string.ways_to_confirm, requireContext())
+            binding.tvBack.text = LanguageUtils.getLocaleStringResource(locale, R.string.cancel, requireContext())
+            binding.tvBotInfo.text = LanguageUtils.getLocaleStringResource(
                 locale,
                 R.string.click_bot_sent_code,
-                context!!
+                requireContext()
             )
-            tvUssdInfo.text =
-                LanguageUtils.getLocaleStringResource(locale, R.string.call_ussd, context!!)
-            tvClickApp.text =
-                LanguageUtils.getLocaleStringResource(locale, R.string.click_app, context!!)
-            tvClickAppInfo.text = LanguageUtils.getLocaleStringResource(
+            binding.tvUssdInfo.text =
+                LanguageUtils.getLocaleStringResource(locale, R.string.call_ussd, requireContext())
+            binding.tvClickApp.text =
+                LanguageUtils.getLocaleStringResource(locale, R.string.click_app, requireContext())
+            binding.tvClickAppInfo.text = LanguageUtils.getLocaleStringResource(
                 locale,
                 R.string.enter_invoices_list,
-                context!!
+                requireContext()
             )
             checkConfirmation()
         } else throw ArgumentEmptyException()
 
-        llUSSD.setOnClickListener {
+        binding.llUSSD.setOnClickListener {
             val intent = Intent(Intent.ACTION_DIAL)
             intent.data = Uri.parse("tel:${Uri.encode(CLICK_USSD)}")
             startActivity(intent)
         }
 
-        llApp.setOnClickListener {
-            if (isAppAvailable(context!!, APP_NAME)) {
+        binding.llApp.setOnClickListener {
+            if (isAppAvailable(requireContext(), APP_NAME)) {
                 val intent = context?.packageManager?.getLaunchIntentForPackage(APP_NAME)
-                startActivity(intent)
+                if (intent != null) {
+                    startActivity(intent)
+                }
             } else {
                 startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("$PLAY_STORE_ADDRESS$APP_NAME")))
             }
         }
 
-        llTelegram.setOnClickListener {
+        binding.llTelegram.setOnClickListener {
             startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(TELEGRAM_BOT_NAME)))
         }
 
-        btnBack.setOnClickListener {
+        binding.btnBack.setOnClickListener {
             clickMerchantManager.invoiceCancelled = true
             listener?.onInvoiceCancelled()
             (parentFragment as MainDialogFragment?)?.close()
@@ -143,7 +142,7 @@ class InvoiceConfirmationFragment : AppCompatDialogFragment() {
     }
 
     private fun checkConfirmation() {
-        progressIndicator.show()
+        binding.progressIndicator.show()
         clickMerchantManager.checkPaymentByRequestIdContinuously(
             requestId,
             object : ResponseListener<CheckoutResponse> {

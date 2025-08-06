@@ -25,7 +25,6 @@ import uz.click.mobilesdk.core.data.CheckoutResponse
 import uz.click.mobilesdk.core.data.InitialResponse
 import uz.click.mobilesdk.core.data.InvoiceResponse
 import uz.click.mobilesdk.core.errors.ArgumentEmptyException
-// UPDATED: Import the generated View Binding class
 import uz.click.mobilesdk.databinding.FragmentPaymentBinding
 import uz.click.mobilesdk.impl.paymentoptions.PaymentOption
 import uz.click.mobilesdk.impl.paymentoptions.PaymentOptionEnum
@@ -35,10 +34,8 @@ import java.util.*
 
 class PaymentFragment : AppCompatDialogFragment() {
 
-    // UPDATED: Start of View Binding implementation
     private var _binding: FragmentPaymentBinding? = null
     private val binding get() = _binding!!
-    // UPDATED: End of View Binding implementation
 
     private lateinit var config: ClickMerchantConfig
     private var listener: ClickMerchantListener? = null
@@ -53,7 +50,7 @@ class PaymentFragment : AppCompatDialogFragment() {
         super.onCreate(savedInstanceState)
         if (arguments == null) throw ArgumentEmptyException()
 
-        config = arguments!!.getSerializable(
+        config = requireArguments().getSerializable(
             MainDialogFragment.CLICK_MERCHANT_CONFIG
         ) as ClickMerchantConfig
 
@@ -74,7 +71,6 @@ class PaymentFragment : AppCompatDialogFragment() {
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
-        // UPDATED: Inflate the layout using the binding class and return its root view
         val contextWrapper = when (config.themeMode) {
             ThemeOptions.LIGHT -> ContextThemeWrapper(activity, R.style.Theme_App_Light)
             ThemeOptions.NIGHT -> ContextThemeWrapper(activity, R.style.Theme_App_Dark)
@@ -83,7 +79,6 @@ class PaymentFragment : AppCompatDialogFragment() {
         return binding.root
     }
 
-    // UPDATED: Add onDestroyView to clean up the binding reference and avoid memory leaks
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
@@ -93,7 +88,6 @@ class PaymentFragment : AppCompatDialogFragment() {
         super.onViewCreated(view, savedInstanceState)
         listener = (parentFragment as MainDialogFragment?)?.getListener()
 
-        // UPDATED: All view access is now done through the `binding` object
         when (config.themeMode) {
             ThemeOptions.LIGHT -> {
                 binding.btnNext.setBackgroundResource(R.drawable.next_button_rounded)
@@ -110,7 +104,7 @@ class PaymentFragment : AppCompatDialogFragment() {
         }
 
         if (arguments != null) {
-            config = arguments!!.getSerializable(MainDialogFragment.CLICK_MERCHANT_CONFIG) as ClickMerchantConfig
+            config = requireArguments().getSerializable(MainDialogFragment.CLICK_MERCHANT_CONFIG) as ClickMerchantConfig
             binding.tvTitle.text = config.productName
             binding.tvSubtitle.text = config.productDescription
             binding.tvSum.text = config.amount.formatDecimals()
@@ -265,9 +259,19 @@ class PaymentFragment : AppCompatDialogFragment() {
                     }
 
                     override fun onSuccess(response: InitialResponse) {
-                        requestId = response.requestId
-                        listener?.onReceiveRequestId(requestId)
-                        if (requestId.isNotEmpty()) init() else showResult()
+                        // Safely handle the nullable requestId
+                        val newRequestId = response.requestId
+                        if (response.errorCode == 0 && newRequestId != null) {
+                            requestId = newRequestId
+                            listener?.onReceiveRequestId(requestId)
+                            init() // Re-run init to check payment status with the new ID
+                        } else {
+                            // Handle the case where the API returned an error
+                            activity?.runOnUiThread {
+                                showError()
+                                binding.tvErrorText.text = response.errorNote
+                            }
+                        }
                     }
                 }
             )

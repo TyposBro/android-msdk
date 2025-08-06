@@ -16,6 +16,11 @@ android {
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
         vectorDrawables.useSupportLibrary = true
+
+        // Correct way to define long BuildConfig fields from gradle.properties
+        buildConfigField "long", "SERVICE_ID", "${project.property('CLICK_SERVICE_ID')}L"
+        buildConfigField "long", "MERCHANT_ID", "${project.property('CLICK_MERCHANT_ID')}L"
+        buildConfigField "long", "MERCHANT_USER_ID", "${project.property('CLICK_MERCHANT_USER_ID')}L"
     }
 
     // Load properties from local.properties
