@@ -96,10 +96,6 @@ class ClickMerchantManager {
             override fun onResponse(call: Call, response: Response) {
                 if (response.isSuccessful) {
                     val responseBody = response.body
-                    if (responseBody == null) {
-                        listener.onFailure(ServerNotAvailableException(response.code, response.message))
-                        return
-                    }
 
                     responseBody.let {
                         val initialResponse = moshi.adapter(InitialResponse::class.java)
@@ -107,9 +103,7 @@ class ClickMerchantManager {
 
                         when (initialResponse?.errorCode) {
                             0 -> {
-                                if (initialResponse != null) {
-                                    listener.onSuccess(initialResponse)
-                                }
+                                listener.onSuccess(initialResponse)
                             }
                             else -> {
                                 listener.onFailure(
@@ -148,10 +142,6 @@ class ClickMerchantManager {
             override fun onResponse(call: Call, response: Response) {
                 if (response.isSuccessful) {
                     val responseBody = response.body
-                    if (responseBody == null) {
-                        listener.onFailure(ServerNotAvailableException(response.code, response.message))
-                        return
-                    }
 
                     responseBody.let {
                         val checkoutResponse = moshi.adapter(CheckoutResponse::class.java)
@@ -200,10 +190,6 @@ class ClickMerchantManager {
 
             override fun onResponse(call: Call, response: Response) {
                 val responseBody = response.body
-                if (responseBody == null) {
-                    listener.onFailure(ServerNotAvailableException(response.code, response.message))
-                    return
-                }
 
                 responseBody.let {
                     if (response.isSuccessful) {
@@ -241,10 +227,6 @@ class ClickMerchantManager {
             override fun onResponse(call: Call, response: Response) {
                 if (response.isSuccessful) {
                     val responseBody = response.body
-                    if (responseBody == null) {
-                        listener.onFailure(ServerNotAvailableException(response.code, response.message))
-                        return
-                    }
 
                     responseBody.let {
 
@@ -253,9 +235,7 @@ class ClickMerchantManager {
 
                         when (invoiceResponse?.errorCode) {
                             0 -> {
-                                if (invoiceResponse != null) {
-                                    listener.onSuccess(invoiceResponse)
-                                }
+                                listener.onSuccess(invoiceResponse)
                             }
                             else -> {
                                 listener.onFailure(
@@ -302,10 +282,6 @@ class ClickMerchantManager {
             override fun onResponse(call: Call, response: Response) {
                 if (response.isSuccessful) {
                     val responseBody = response.body
-                    if (responseBody == null) {
-                        listener.onFailure(ServerNotAvailableException(response.code, response.message))
-                        return
-                    }
 
                     responseBody.let {
 
@@ -314,9 +290,7 @@ class ClickMerchantManager {
                                 .fromJson(it.string())
                         when (cardPaymentResponse?.errorCode) {
                             0 -> {
-                                if (cardPaymentResponse != null) {
-                                    listener.onSuccess(cardPaymentResponse)
-                                }
+                                listener.onSuccess(cardPaymentResponse)
                             }
                             else -> {
                                 listener.onFailure(
@@ -359,10 +333,6 @@ class ClickMerchantManager {
             override fun onResponse(call: Call, response: Response) {
                 if (response.isSuccessful) {
                     val responseBody = response.body
-                    if (responseBody == null) {
-                        listener.onFailure(ServerNotAvailableException(response.code, response.message))
-                        return
-                    }
 
                     responseBody.let {
 
@@ -371,9 +341,7 @@ class ClickMerchantManager {
                                 .fromJson(it.string())
                         when (confirmResponse?.errorCode) {
                             0 -> {
-                                if (confirmResponse != null) {
-                                    listener.onSuccess(confirmResponse)
-                                }
+                                listener.onSuccess(confirmResponse)
                             }
                             else -> {
                                 listener.onFailure(
@@ -409,10 +377,6 @@ class ClickMerchantManager {
             override fun onResponse(call: Call, response: Response) {
                 if (response.isSuccessful) {
                     val responseBody = response.body
-                    if (responseBody == null) {
-                        listener.onFailure(ServerNotAvailableException(response.code, response.message))
-                        return
-                    }
 
                     responseBody.let {
 
@@ -421,9 +385,7 @@ class ClickMerchantManager {
                                 .fromJson(it.string())
                         when (checkResponse?.errorCode) {
                             0 -> {
-                                if (checkResponse != null) {
-                                    listener.onSuccess(checkResponse)
-                                }
+                                listener.onSuccess(checkResponse)
                             }
                             else -> {
                                 listener.onFailure(
