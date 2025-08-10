@@ -7,6 +7,7 @@ import uz.click.mobilesdk.impl.MainDialogFragment
 
 /**
  * @author rahmatkhujaevs on 29/01/19
+ * @constructor typosbro
  * */
 object ClickMerchant {
 
